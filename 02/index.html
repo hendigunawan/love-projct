@@ -20,7 +20,7 @@
       margin: 0;
       overflow: hidden;
       background: radial-gradient(circle at 50% 35%, #13061a 0%, #07040d 42%, #000 100%);
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Arial, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', Helvetica, sans-serif;
       color: white;
     }
 
@@ -324,8 +324,9 @@
       - Ubah HEART_MESSAGE untuk tulisan di tengah hati.
       - Ubah WORDS jika mau ganti urutan kata.
       - Taruh file musik dengan nama music.mp3 di folder yang sama.
+      - Emoji aman karena file memakai UTF-8 dan font emoji.
     */
-    const HEART_MESSAGE = 'I Love You Sayang 🩷';
+    const HEART_MESSAGE = 'I Love You Sayangku 🩷';
     const WORDS = [
       { text: '3',    start: 2.65,  end: 4.95, size: 0.285 },
       { text: '2',    start: 5.30,  end: 7.60, size: 0.285 },
@@ -334,13 +335,14 @@
       { text: 'Are',  start: 14.90, end: 18.10, size: 0.215 },
       { text: 'My',   start: 18.55, end: 21.55, size: 0.225 },
       { text: 'Love', start: 22.00, end: 25.40, size: 0.195 },
+      { text: '🩷',   start: 25.85, end: 28.65, size: 0.165 },
     ];
-    const HEART_START = 26.80;
-    const OUTRO_START = 38.20;
-    const LOOP_SECONDS = 42.80;
+    const HEART_START = 30.10;
+    const OUTRO_START = 41.50;
+    const LOOP_SECONDS = 46.10;
     const INTRO_BLACK_END = 0.32;
     const INTRO_SCAN_END = 2.28;
-    const MATRIX_POOL = [...'I LOVE YOU 🩷'];
+    const MATRIX_POOL = Array.from('I LOVE YOU 🩷');
     const LITE_MODE = true;
     const MUSIC_VOLUME = 0.75; // 0.0 sampai 1.0
 
@@ -485,12 +487,13 @@
     function textPoints(text, sizeScale) {
       offCtx.clearRect(0, 0, W, H);
       const fontSize = Math.round(Math.min(W, H) * sizeScale);
-      const tracking = Math.max(2, Math.round(fontSize * (text.length <= 2 ? 0.022 : 0.011)));
+      const charCount = Array.from(text).length;
+      const tracking = Math.max(2, Math.round(fontSize * (charCount <= 2 ? 0.022 : 0.011)));
       offCtx.save();
       offCtx.fillStyle = '#fff';
       offCtx.textAlign = 'center';
       offCtx.textBaseline = 'middle';
-      offCtx.font = `900 ${fontSize}px Arial Black, Arial, Helvetica, sans-serif`;
+      offCtx.font = `900 ${fontSize}px Arial Black, Arial, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', Helvetica, sans-serif`;
       drawTrackedText(offCtx, text, W * .50, H * .44, tracking, true);
       offCtx.restore();
 
@@ -613,7 +616,7 @@
           r.chars[idx] = randomMatrixChar();
         }
 
-        ctx.font = `700 ${r.fontSize}px Arial, Helvetica, sans-serif`;
+        ctx.font = `700 ${r.fontSize}px Arial, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', Helvetica, sans-serif`;
         for (let i = 0; i < r.chars.length; i++) {
           const yy = r.y - i * r.step;
           if (yy < -30 || yy > H + 30) continue;
@@ -748,7 +751,7 @@
       ctx.textBaseline = 'middle';
       const fs = Math.max(14, Math.min(W, H) * .029);
       const tracking = Math.max(1.5, fs * .03);
-      ctx.font = `800 ${fs}px Arial, Helvetica, sans-serif`;
+      ctx.font = `800 ${fs}px Arial, 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', Helvetica, sans-serif`;
       ctx.shadowColor = 'rgba(255, 70, 150, .95)';
       ctx.shadowBlur = 18;
       ctx.fillStyle = `rgba(255, 235, 210, ${.94 + Math.sin(t * 4) * .05})`;
