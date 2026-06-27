@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Love Matrix Heart - Lite</title>
+  <style>
+    :root {
+      --bg: #030207;
+      --pink: #ff4fa3;
+      --pink2: #ff78bd;
+      --white: #fff8da;
+      --soft: rgba(255, 110, 185, .55);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 35%, #13061a 0%, #07040d 42%, #000 100%);
+      font-family: Arial, Helvetica, sans-serif;
+      color: white;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background: transparent;
+    }
+
+    .vignette {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 42%, transparent 0%, transparent 42%, rgba(0,0,0,.55) 78%, rgba(0,0,0,.88) 100%),
+        linear-gradient(to bottom, rgba(255,255,255,.035), transparent 11%, transparent 82%, rgba(0,0,0,.38));
+      mix-blend-mode: normal;
+    }
+
+
+
+
+    .hint {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.38);
+      border: 1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.62);
+      font-size: 11px;
+      opacity: 0;
+      animation: hint 4.5s ease-in-out 1s 1 forwards;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    @keyframes hint {
+      0%, 100% { opacity: 0; transform: translateX(-50%) translateY(8px); }
+      12%, 72% { opacity: .8; transform: translateX(-50%) translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div class="vignette"></div>
+  <div class="hint">Tap / klik untuk restart animasi</div>
+
+  <script>
+    /*
+      EDIT CEPAT:
+      - Ubah HEART_MESSAGE untuk tulisan di tengah hati.
+      - Ubah WORDS jika mau ganti urutan kata.
+    */
+    const HEART_MESSAGE = 'I Love You Sayang';
+    const WORDS = [
+      { text: '3',    start: 2.65,  end: 3.85, size: 0.285 },
+      { text: '2',    start: 4.10,  end: 5.25, size: 0.285 },
+      { text: '1',    start: 5.45,  end: 6.65, size: 0.285 },
+      { text: 'You',  start: 7.85,  end: 9.65, size: 0.225 },
+      { text: 'Are',  start: 10.15, end: 11.95, size: 0.215 },
+      { text: 'My',   start: 12.35, end: 14.00, size: 0.225 },
+      { text: 'Love', start: 14.25, end: 16.10, size: 0.195 },
+    ];
+    const HEART_START = 17.35;
+    const OUTRO_START = 28.70;
+    const LOOP_SECONDS = 33.35;
+    const INTRO_BLACK_END = 0.32;
+    const INTRO_SCAN_END = 2.28;
+    const MATRIX_POOL = [...'I LOVE YOU 🩷'];
+    const LITE_MODE = true;
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { alpha: true });
+    const off = document.createElement('canvas');
+    const offCtx = off.getContext('2d', { willReadFrequently: true });
+
+    let W = 0, H = 0, DPR = 1;
+    let particles = [];
+    let rain = [];
+    let sparkle = [];
+    let lastMode = '';
+    let lastText = '';
+    let startTime = performance.now();
+    let burstTime = 0;
+
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const easeOut = t => 1 - Math.pow(1 - clamp(t, 0, 1), 3);
+    const shuffle = arr => {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
+    function resize() {
+      DPR = Math.min(window.devicePixelRatio || 1, 1.25);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+      off.width = Math.floor(W);
+      off.height = Math.floor(H);
+
+      makeRain();
+      makeSparkle();
+      makeParticles();
+      lastMode = '';
+      lastText = '';
+    }
+
+    function randomMatrixChar() {
+      return MATRIX_POOL[Math.floor(Math.random() * MATRIX_POOL.length)];
+    }
+
+    function makeRain() {
+      // Lite mode: jumlah kolom dibuat jauh lebih sedikit agar tidak lag.
+      const count = Math.floor(clamp(W / 13.5, 26, 96));
+      rain = Array.from({ length: count }, () => ({
+        x: rand(-W * .05, W * 1.05),
+        y: rand(-H, H),
+        len: Math.floor(rand(4, 9)),
+        step: rand(15, 24),
+        speed: rand(.70, 2.25),
+        drift: rand(-.045, .045),
+        alpha: rand(.13, .48),
+        fontSize: rand(12, 18),
+        hue: Math.random() < .90 ? 324 : 338,
+        phase: rand(0, Math.PI * 2),
+        chars: Array.from({ length: Math.floor(rand(4, 9)) }, () => randomMatrixChar()),
+      }));
+    }
+
+    function makeSparkle() {
+      const count = Math.floor(clamp(W * H / 6200, 45, 120));
+      sparkle = Array.from({ length: count }, () => ({
+        x: rand(0, W),
+        y: rand(0, H),
+        r: rand(.35, 1.4),
+        a: rand(.08, .42),
+        tw: rand(.8, 3.2),
+        phase: rand(0, Math.PI * 2),
+      }));
+    }
+
+    function makeParticles() {
+      const count = Math.floor(clamp(W * H / 470, 720, 1450));
+      particles = Array.from({ length: count }, () => ({
+        x: rand(W * .08, W * .92),
+        y: rand(H * .15, H * .78),
+        vx: rand(-2, 2),
+        vy: rand(-1, 2),
+        tx: rand(0, W),
+        ty: rand(0, H),
+        size: rand(1.2, 2.7),
+        alpha: rand(.55, 1),
+        phase: rand(0, Math.PI * 2),
+        color: 'text',
+        free: true,
+        rectW: rand(1.5, 2.4),
+        rectH: rand(1.5, 2.8),
+        highlight: Math.random() < .12,
+      }));
+      scatterTargets('intro');
+    }
+
+    function scatterTargets(type = 'scatter') {
+      const now = performance.now();
+      burstTime = now;
+      particles.forEach((p, i) => {
+        p.free = true;
+        p.color = Math.random() < .45 ? 'pink' : 'dim';
+        if (type === 'intro') {
+          p.tx = rand(W * .05, W * .95);
+          p.ty = rand(H * .30, H * .55) + Math.sin(i) * H * .035;
+        } else if (type === 'outro') {
+          p.tx = W * .5 + rand(-W * .14, W * .14);
+          p.ty = H * .58 + rand(-H * .03, H * .17);
+          p.color = 'pink';
+        } else {
+          p.tx = rand(W * .08, W * .92);
+          p.ty = rand(-H * .15, H * .95);
+        }
+      });
+    }
+
+    function drawTrackedText(c, text, x, y, spacing = 0, center = true) {
+      const chars = [...text];
+      if (!chars.length) return;
+      if (!spacing) {
+        c.fillText(text, x, y);
+        return;
+      }
+      const widths = chars.map(ch => c.measureText(ch).width);
+      const totalWidth = widths.reduce((a, b) => a + b, 0) + spacing * Math.max(0, chars.length - 1);
+      let dx = center ? x - totalWidth / 2 : x;
+      for (let i = 0; i < chars.length; i++) {
+        c.fillText(chars[i], dx + widths[i] / 2, y);
+        dx += widths[i] + spacing;
+      }
+    }
+
+    function textPoints(text, sizeScale) {
+      offCtx.clearRect(0, 0, W, H);
+      const fontSize = Math.round(Math.min(W, H) * sizeScale);
+      const tracking = Math.max(2, Math.round(fontSize * (text.length <= 2 ? 0.022 : 0.011)));
+      offCtx.save();
+      offCtx.fillStyle = '#fff';
+      offCtx.textAlign = 'center';
+      offCtx.textBaseline = 'middle';
+      offCtx.font = `900 ${fontSize}px Arial Black, Arial, Helvetica, sans-serif`;
+      drawTrackedText(offCtx, text, W * .50, H * .44, tracking, true);
+      offCtx.restore();
+
+      const img = offCtx.getImageData(0, 0, W, H).data;
+      const gap = Math.max(5, Math.floor(Math.min(W, H) / 110));
+      const pts = [];
+      for (let y = Math.floor(H * .18); y < Math.floor(H * .68); y += gap) {
+        for (let x = Math.floor(W * .05); x < Math.floor(W * .95); x += gap) {
+          const a = img[(y * W + x) * 4 + 3];
+          if (a > 24) {
+            pts.push({
+              x: x + rand(-.22, .22),
+              y: y + rand(-.22, .22),
+              a: a / 255,
+            });
+          }
+        }
+      }
+      return shuffle(pts);
+    }
+
+    function heartPoints() {
+      const pts = [];
+      const scale = Math.min(W, H) * .0195;
+      const cx = W * .50;
+      const cy = H * .425;
+      const total = Math.max(900, particles.length);
+
+      for (let i = 0; i < total; i++) {
+        const t = rand(0, Math.PI * 2);
+        const baseX = 16 * Math.pow(Math.sin(t), 3);
+        const baseY = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        const thickness = rand(-7.2, 7.2);
+        const normalJitter = rand(-2.5, 2.5);
+        pts.push({
+          x: cx + baseX * scale + thickness + normalJitter,
+          y: cy + baseY * scale + rand(-6.5, 6.5),
+          a: rand(.62, 1),
+        });
+      }
+
+      // Tambahan bagian bawah supaya hati terlihat penuh seperti percikan pink.
+      for (let i = 0; i < Math.floor(total * .22); i++) {
+        const t = rand(Math.PI * .82, Math.PI * 1.18);
+        const baseX = 16 * Math.pow(Math.sin(t), 3);
+        const baseY = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        pts.push({
+          x: cx + baseX * scale + rand(-9, 9),
+          y: cy + baseY * scale + rand(-9, 9),
+          a: rand(.50, 1),
+        });
+      }
+      return shuffle(pts);
+    }
+
+    function setTextTarget(text, sizeScale) {
+      const pts = textPoints(text, sizeScale);
+      const textCount = Math.min(particles.length, Math.max(pts.length, Math.floor(pts.length * 1.22)));
+
+      particles.forEach((p, i) => {
+        if (i < textCount && pts.length) {
+          const pt = pts[i % pts.length];
+          const duplicateSpread = i >= pts.length ? rand(-.38, .38) : 0;
+          p.tx = pt.x + duplicateSpread;
+          p.ty = pt.y + duplicateSpread;
+          p.alpha = rand(.92, 1);
+          p.size = rand(1.7, 2.35);
+          p.color = 'text';
+          p.free = false;
+          p.rectW = rand(2.0, 2.85);
+          p.rectH = rand(2.15, 3.15);
+          p.highlight = Math.random() < .18;
+        } else {
+          p.free = true;
+          p.color = Math.random() < .50 ? 'dim' : 'pink';
+          p.alpha = rand(.18, .42);
+          p.size = rand(.68, 1.28);
+          p.tx = rand(W * .08, W * .92);
+          p.ty = rand(H * .14, H * .72);
+        }
+      });
+      burstTime = performance.now();
+    }
+
+    function setHeartTarget() {
+      const pts = heartPoints();
+      particles.forEach((p, i) => {
+        const pt = pts[i % pts.length];
+        p.tx = pt.x;
+        p.ty = pt.y;
+        p.alpha = pt.a;
+        p.size = rand(1.25, 3.0);
+        p.color = 'heart';
+        p.free = false;
+      });
+      burstTime = performance.now();
+    }
+
+    function drawRain(t, revealY = H + 80, introMode = false) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowBlur = 0;
+      for (const r of rain) {
+        r.y += r.speed;
+        r.x += r.drift;
+        if (r.y - r.len * r.step > H + 60) {
+          r.y = rand(-H * .45, -20);
+          r.x = rand(-W * .05, W * 1.05);
+          r.speed = rand(.70, 2.25);
+          r.step = rand(15, 24);
+          r.fontSize = rand(12, 18);
+          r.len = Math.floor(rand(4, 9));
+          r.chars = Array.from({ length: r.len }, () => randomMatrixChar());
+        }
+
+        if (Math.random() < (introMode ? .02 : .035)) {
+          const idx = Math.floor(Math.random() * r.chars.length);
+          r.chars[idx] = randomMatrixChar();
+        }
+
+        ctx.font = `700 ${r.fontSize}px Arial, Helvetica, sans-serif`;
+        for (let i = 0; i < r.chars.length; i++) {
+          const yy = r.y - i * r.step;
+          if (yy < -30 || yy > H + 30) continue;
+          if (yy > revealY) continue;
+          const fade = 1 - i / r.chars.length;
+          const revealFade = introMode ? clamp((revealY - yy) / 26, 0, 1) : 1;
+          const alpha = r.alpha * fade * revealFade;
+          const light = introMode ? (72 + fade * 18) : (68 + fade * 14);
+          ctx.fillStyle = `hsla(${r.hue}, 100%, ${light}%, ${alpha})`;
+          ctx.fillText(r.chars[i], r.x, yy);
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawSparkle(t) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const s of sparkle) {
+        const a = s.a * (.45 + .55 * Math.sin(t * s.tw + s.phase));
+        ctx.fillStyle = `rgba(255, 190, 230, ${Math.max(0, a)})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function updateParticles(t, mode) {
+      const gatherBoost = easeOut((performance.now() - burstTime) / 1000);
+      for (const p of particles) {
+        let k = p.free ? .010 : .024;
+        let drag = p.free ? .925 : .855;
+        if (mode === 'heart') { k = .020; drag = .865; }
+        if (mode === 'outro') { k = .014; drag = .91; }
+
+        const wobble = Math.sin(t * 2.5 + p.phase) * (p.free ? 1.4 : .55);
+        const dx = p.tx + wobble - p.x;
+        const dy = p.ty + Math.cos(t * 2.1 + p.phase) * .42 - p.y;
+
+        p.vx += dx * k * (0.76 + gatherBoost * .42);
+        p.vy += dy * k * (0.76 + gatherBoost * .42);
+        p.vx *= drag;
+        p.vy *= drag;
+        if (p.free) p.vy += .012;
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.free && p.y > H + 30) {
+          p.x = rand(0, W);
+          p.y = rand(-100, 0);
+          p.vx = rand(-1, 1);
+          p.vy = rand(0, 1.4);
+          p.tx = rand(0, W);
+          p.ty = rand(H * .18, H * .70);
+        }
+      }
+    }
+
+    function particleColor(p, t) {
+      const tw = .78 + Math.sin(t * 7.5 + p.phase) * .22;
+      if (p.color === 'heart') {
+        const light = 61 + Math.sin(t * 3 + p.phase) * 9;
+        return `hsla(${rand(323, 338)}, 100%, ${light}%, ${p.alpha * tw})`;
+      }
+      if (p.color === 'pink') return `rgba(255, 83, 168, ${p.alpha * .78 * tw})`;
+      if (p.color === 'dim') return `rgba(255, 162, 212, ${p.alpha * .35 * tw})`;
+      return `rgba(255, 245, 250, ${p.alpha * 1.08 * tw})`;
+    }
+
+    function drawParticles(t, mode) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of particles) {
+        const pulse = mode === 'heart' ? (1 + Math.sin(t * 5.5 + p.phase) * .25) : (1 + Math.sin(t * 8 + p.phase) * .10);
+        const r = p.size * pulse;
+        ctx.fillStyle = particleColor(p, t);
+
+        if (mode === 'text' && !p.free && p.color === 'text') {
+          ctx.globalAlpha = Math.min(1, 1.00 + Math.sin(t * 4 + p.phase) * 0.05);
+          const w = p.rectW * pulse;
+          const h = p.rectH * pulse;
+          ctx.fillRect(p.x - w * .5, p.y - h * .5, w, h);
+          if (p.highlight && Math.sin(t * 6 + p.phase) > .72) {
+            ctx.fillStyle = 'rgba(255,248,252,.78)';
+            ctx.fillRect(p.x - .7, p.y - h * .88, 1.4, h * .90);
+          }
+          ctx.globalAlpha = 1;
+        } else {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (!p.free && Math.random() < .006) {
+          ctx.fillStyle = p.color === 'heart' ? 'rgba(255,190,225,.8)' : 'rgba(255,248,252,.60)';
+          ctx.fillRect(p.x - 1.4, p.y - 1.4, 2.8, 2.8);
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawWordOverlay(text, sizeScale, alpha = .24) {
+      // overlay helper disabled: no shadow/silhouette behind matrix text
+      return;
+    }
+
+    function drawScanLine(y, progress) {
+      ctx.save();
+      const g = ctx.createLinearGradient(0, y - 24, 0, y + 24);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(.42, 'rgba(255,110,190,.18)');
+      g.addColorStop(.5, 'rgba(255,220,240,.82)');
+      g.addColorStop(.58, 'rgba(255,110,190,.18)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y - 24, W, 48);
+      ctx.fillStyle = 'rgba(255, 220, 240, .75)';
+      ctx.fillRect(0, y - 1, W, 2);
+      ctx.globalAlpha = .14;
+      ctx.fillStyle = 'rgba(255, 130, 210, .9)';
+      ctx.fillRect(0, 0, W, y);
+      ctx.restore();
+    }
+
+    function drawHeartText(t, fade) {
+      const cx = W * .5;
+      const cy = H * .425;
+      ctx.save();
+      ctx.globalAlpha = fade;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const fs = Math.max(14, Math.min(W, H) * .029);
+      const tracking = Math.max(1.5, fs * .03);
+      ctx.font = `800 ${fs}px Arial, Helvetica, sans-serif`;
+      ctx.shadowColor = 'rgba(255, 70, 150, .95)';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = `rgba(255, 235, 210, ${.94 + Math.sin(t * 4) * .05})`;
+      drawTrackedText(ctx, HEART_MESSAGE, cx, cy + Math.min(W, H) * .005, tracking, true);
+      ctx.restore();
+    }
+
+    function drawOutro(t, localT) {
+      const fade = easeOut((localT - OUTRO_START) / 1.7);
+      const cx = W * .50;
+      const cy = H * .58;
+      const s = Math.min(W, H) * (.070 + Math.sin(t * 3) * .003);
+
+      ctx.save();
+      ctx.globalAlpha = fade * .9;
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(cx, cy, s * .12, cx, cy, s * 1.35);
+      g.addColorStop(0, 'rgba(255,255,255,.72)');
+      g.addColorStop(.28, 'rgba(255,130,200,.55)');
+      g.addColorStop(.62, 'rgba(160,110,255,.25)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx, cy, s * 1.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,165,215,.82)';
+      ctx.lineWidth = Math.max(2, s * .065);
+      ctx.beginPath();
+      ctx.arc(cx, cy, s * .62, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function roundRect(c, x, y, w, h, r) {
+      c.beginPath();
+      c.moveTo(x + r, y);
+      c.arcTo(x + w, y, x + w, y + h, r);
+      c.arcTo(x + w, y + h, x, y + h, r);
+      c.arcTo(x, y + h, x, y, r);
+      c.arcTo(x, y, x + w, y, r);
+      c.closePath();
+    }
+
+    function applyStage(localT) {
+      let mode = 'scatter';
+      let label = '';
+      let current = WORDS.find(w => localT >= w.start && localT < w.end);
+
+      if (current) {
+        mode = 'text';
+        label = current.text;
+        if (lastMode !== mode || lastText !== label) {
+          setTextTarget(current.text, current.size);
+          lastMode = mode;
+          lastText = label;
+        }
+      } else if (localT >= HEART_START && localT < OUTRO_START + 4.7) {
+        mode = localT >= OUTRO_START ? 'outro' : 'heart';
+        label = 'heart';
+        if (lastMode !== 'heart' && lastMode !== 'outro') {
+          setHeartTarget();
+          lastText = label;
+        }
+        if (lastMode !== mode) {
+          lastMode = mode;
+        }
+      } else if (localT < 2.45) {
+        mode = 'intro';
+        label = 'intro';
+        if (lastMode !== mode) {
+          scatterTargets('intro');
+          lastMode = mode;
+          lastText = label;
+        }
+      } else {
+        mode = 'scatter';
+        label = 'scatter';
+        if (lastMode !== mode || lastText !== label) {
+          scatterTargets('scatter');
+          lastMode = mode;
+          lastText = label;
+        }
+      }
+      return mode;
+    }
+
+    function drawScreenGlow(t) {
+      ctx.save();
+      const g = ctx.createRadialGradient(W * .5, H * .42, 0, W * .5, H * .42, Math.max(W, H) * .62);
+      g.addColorStop(0, 'rgba(255,70,160,.07)');
+      g.addColorStop(.43, 'rgba(80,95,255,.035)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+
+      // sedikit garis diagonal seperti rekaman layar laptop.
+      ctx.globalAlpha = .10;
+      ctx.strokeStyle = 'rgba(255,255,255,.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(W * .04, H * .12);
+      ctx.lineTo(W * .96, H * .02);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function animate(now) {
+      const elapsed = (now - startTime) / 1000;
+      const localT = elapsed % LOOP_SECONDS;
+      if (elapsed > LOOP_SECONDS && localT < .05) {
+        lastMode = '';
+        lastText = '';
+      }
+
+      const mode = applyStage(localT);
+      const currentWord = WORDS.find(w => localT >= w.start && localT < w.end);
+
+      ctx.clearRect(0, 0, W, H);
+
+      if (localT < INTRO_BLACK_END) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+        requestAnimationFrame(animate);
+        return;
+      }
+
+      if (localT < INTRO_SCAN_END) {
+        const p = clamp((localT - INTRO_BLACK_END) / (INTRO_SCAN_END - INTRO_BLACK_END), 0, 1);
+        const scanY = -30 + (H + 60) * p;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+        drawRain(elapsed, scanY, true);
+        drawScanLine(scanY, p);
+        requestAnimationFrame(animate);
+        return;
+      }
+
+      ctx.fillStyle = 'rgba(0,0,0,.34)';
+      ctx.fillRect(0, 0, W, H);
+      drawScreenGlow(elapsed);
+      drawRain(elapsed);
+      drawSparkle(elapsed);
+      updateParticles(elapsed, mode);
+      drawParticles(elapsed, mode);
+
+      if (mode === 'heart' || mode === 'outro') {
+        const fade = easeOut((localT - HEART_START) / 1.5) * (mode === 'outro' ? Math.max(.25, 1 - (localT - OUTRO_START) / 5.5) : 1);
+        drawHeartText(elapsed, fade);
+      }
+      if (mode === 'outro') drawOutro(elapsed, localT);
+
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', resize, { passive: true });
+    window.addEventListener('pointerdown', () => {
+      startTime = performance.now();
+      lastMode = '';
+      lastText = '';
+      scatterTargets('intro');
+    }, { passive: true });
+
+    resize();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
