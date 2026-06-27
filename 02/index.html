@@ -66,36 +66,283 @@
       0%, 100% { opacity: 0; transform: translateX(-50%) translateY(8px); }
       12%, 72% { opacity: .8; transform: translateX(-50%) translateY(0); }
     }
+
+
+    .letter-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 50% 28%, rgba(255, 90, 175, .20), transparent 34%),
+        radial-gradient(circle at 18% 18%, rgba(255, 180, 220, .10), transparent 24%),
+        linear-gradient(180deg, #070309 0%, #160716 54%, #030103 100%);
+      transition: opacity .72s ease, transform .72s ease, filter .72s ease;
+    }
+    .letter-screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.026) 1px, transparent 1px);
+      background-size: 38px 38px;
+      mask-image: radial-gradient(circle at 50% 42%, black 0%, transparent 70%);
+      opacity: .35;
+    }
+    .letter-screen.hide {
+      opacity: 0;
+      transform: scale(1.025);
+      filter: blur(4px);
+      pointer-events: none;
+    }
+    .letter-card {
+      position: relative;
+      width: min(88vw, 360px);
+      border: 0;
+      background: transparent;
+      padding: 0;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      animation: letterFloat 3.4s ease-in-out infinite;
+    }
+    @keyframes letterFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+    .invite-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 430px;
+      padding: 28px 25px 24px;
+      border-radius: 30px;
+      text-align: center;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,237,247,.93) 46%, rgba(255,213,235,.92)),
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.95), transparent 44%);
+      color: #68123f;
+      box-shadow:
+        0 26px 70px rgba(255, 65, 160, .22),
+        0 0 0 1px rgba(255, 255, 255, .62) inset,
+        0 0 0 1px rgba(255, 103, 177, .25);
+    }
+    .invite-card::before {
+      content: "";
+      position: absolute;
+      inset: 13px;
+      border-radius: 24px;
+      border: 1px solid rgba(176, 51, 111, .22);
+      pointer-events: none;
+    }
+    .invite-card::after {
+      content: "";
+      position: absolute;
+      left: -18%;
+      right: -18%;
+      top: -36%;
+      height: 58%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 100%, rgba(255, 105, 184, .28), transparent 62%);
+      pointer-events: none;
+    }
+    .invite-ornament {
+      position: absolute;
+      width: 58px;
+      height: 58px;
+      opacity: .62;
+      pointer-events: none;
+    }
+    .invite-ornament.left {
+      left: 14px;
+      top: 14px;
+      border-left: 2px solid rgba(195, 52, 121, .28);
+      border-top: 2px solid rgba(195, 52, 121, .28);
+      border-radius: 18px 0 0 0;
+    }
+    .invite-ornament.right {
+      right: 14px;
+      bottom: 14px;
+      border-right: 2px solid rgba(195, 52, 121, .22);
+      border-bottom: 2px solid rgba(195, 52, 121, .22);
+      border-radius: 0 0 18px 0;
+    }
+    .seal-mark {
+      position: relative;
+      z-index: 1;
+      width: 82px;
+      height: 82px;
+      margin: 8px auto 18px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 35% 25%, #fff7fb 0%, #ffd1e8 38%, #ff6bb1 100%);
+      color: #fff;
+      font-size: 34px;
+      box-shadow:
+        0 14px 28px rgba(255, 70, 155, .26),
+        0 0 0 8px rgba(255, 143, 197, .16),
+        inset 0 0 0 1px rgba(255,255,255,.55);
+    }
+    .seal-mark::before,
+    .seal-mark::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 40px;
+      height: 28px;
+      transform: translate(-50%, -50%);
+      border-radius: 5px;
+      border: 2px solid rgba(255,255,255,.90);
+    }
+    .seal-mark::after {
+      width: 28px;
+      height: 18px;
+      transform: translate(-50%, -62%) rotate(45deg);
+      border-left: 0;
+      border-bottom: 0;
+      border-radius: 2px;
+    }
+    .seal-heart {
+      position: relative;
+      z-index: 2;
+      transform: translateY(19px);
+      font-size: 15px;
+      text-shadow: 0 2px 8px rgba(190, 30, 110, .28);
+    }
+    .invite-kicker {
+      position: relative;
+      z-index: 1;
+      margin: 0 0 9px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .28em;
+      text-transform: uppercase;
+      color: rgba(126, 23, 72, .55);
+    }
+    .invite-title {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      font-size: clamp(30px, 8.2vw, 44px);
+      line-height: 1.04;
+      font-weight: 950;
+      letter-spacing: -.03em;
+      color: #73164a;
+    }
+    .invite-subtitle {
+      position: relative;
+      z-index: 1;
+      width: 78%;
+      margin: 16px auto 0;
+      font-size: clamp(13px, 3.6vw, 15px);
+      line-height: 1.65;
+      color: rgba(104, 18, 63, .68);
+    }
+    .invite-divider {
+      position: relative;
+      z-index: 1;
+      width: 76%;
+      height: 1px;
+      margin: 23px auto 18px;
+      background: linear-gradient(90deg, transparent, rgba(178, 45, 112, .32), transparent);
+    }
+    .open-pill {
+      position: relative;
+      z-index: 1;
+      width: fit-content;
+      margin: 0 auto;
+      padding: 12px 20px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ff4fa3, #ff78bd);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      box-shadow: 0 12px 28px rgba(255, 67, 157, .28);
+    }
+    .tap-hint {
+      position: relative;
+      z-index: 1;
+      margin: 14px 0 0;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      color: rgba(116, 22, 71, .43);
+    }
+    .mini-heart {
+      position: absolute;
+      color: rgba(255, 72, 160, .35);
+      font-weight: 900;
+      animation: tinyPulse 2.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .mini-heart.h1 { left: 35px; bottom: 86px; font-size: 16px; animation-delay: .2s; }
+    .mini-heart.h2 { right: 44px; top: 84px; font-size: 13px; animation-delay: 1s; }
+    .mini-heart.h3 { right: 28px; bottom: 104px; font-size: 18px; animation-delay: 1.5s; }
+    @keyframes tinyPulse {
+      0%, 100% { transform: scale(1); opacity: .35; }
+      50% { transform: scale(1.18); opacity: .72; }
+    }
+
   </style>
 </head>
 <body>
   <canvas id="canvas"></canvas>
+  <div id="letterScreen" class="letter-screen">
+    <button id="openLetter" class="letter-card" type="button" aria-label="Open love letter">
+      <div class="invite-card">
+        <span class="invite-ornament left"></span>
+        <span class="invite-ornament right"></span>
+        <span class="mini-heart h1">♥</span>
+        <span class="mini-heart h2">♥</span>
+        <span class="mini-heart h3">♥</span>
+        <div class="seal-mark"><span class="seal-heart">♥</span></div>
+        <p class="invite-kicker">Special Letter</p>
+        <h1 class="invite-title">For You 🩷</h1>
+        <p class="invite-subtitle">Ada pesan kecil yang disimpan khusus untuk kamu.</p>
+        <div class="invite-divider"></div>
+        <div class="open-pill">Buka Surat</div>
+        <p class="tap-hint">tap untuk membuka</p>
+      </div>
+    </button>
+  </div>
   <div class="vignette"></div>
   <div class="hint">Tap / klik untuk restart animasi</div>
+
+  <!-- Taruh file music.mp3 di folder yang sama dengan index.html -->
+  <audio id="bgMusic" src="./music.mp3" preload="auto" loop></audio>
 
   <script>
     /*
       EDIT CEPAT:
       - Ubah HEART_MESSAGE untuk tulisan di tengah hati.
       - Ubah WORDS jika mau ganti urutan kata.
+      - Taruh file musik dengan nama music.mp3 di folder yang sama.
     */
     const HEART_MESSAGE = 'I Love You Sayang';
     const WORDS = [
-      { text: '3',    start: 2.65,  end: 4.35, size: 0.285 },
-      { text: '2',    start: 4.60,  end: 6.25, size: 0.285 },
-      { text: '1',    start: 6.50,  end: 8.20, size: 0.285 },
-      { text: 'You',  start: 9.20,  end: 11.60, size: 0.225 },
-      { text: 'Are',  start: 12.05, end: 14.45, size: 0.215 },
-      { text: 'My',   start: 14.85, end: 17.05, size: 0.225 },
-      { text: 'Love', start: 17.30, end: 19.80, size: 0.195 },
+      { text: '3',    start: 2.65,  end: 4.95, size: 0.285 },
+      { text: '2',    start: 5.30,  end: 7.60, size: 0.285 },
+      { text: '1',    start: 7.95,  end: 10.25, size: 0.285 },
+      { text: 'You',  start: 11.20, end: 14.40, size: 0.225 },
+      { text: 'Are',  start: 14.90, end: 18.10, size: 0.215 },
+      { text: 'My',   start: 18.55, end: 21.55, size: 0.225 },
+      { text: 'Love', start: 22.00, end: 25.40, size: 0.195 },
     ];
-    const HEART_START = 21.10;
-    const OUTRO_START = 32.45;
-    const LOOP_SECONDS = 37.10;
+    const HEART_START = 26.80;
+    const OUTRO_START = 38.20;
+    const LOOP_SECONDS = 42.80;
     const INTRO_BLACK_END = 0.32;
     const INTRO_SCAN_END = 2.28;
     const MATRIX_POOL = [...'I LOVE YOU 🩷'];
     const LITE_MODE = true;
+    const MUSIC_VOLUME = 0.75; // 0.0 sampai 1.0
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d', { alpha: true });
@@ -110,6 +357,8 @@
     let lastText = '';
     let startTime = performance.now();
     let burstTime = 0;
+    let started = false;
+    let musicStarted = false;
 
     const rand = (a, b) => a + Math.random() * (b - a);
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -607,6 +856,44 @@
       ctx.restore();
     }
 
+
+    function startMusic() {
+      if (musicStarted) return;
+      const music = document.getElementById('bgMusic');
+      if (!music) return;
+
+      musicStarted = true;
+      music.volume = MUSIC_VOLUME;
+      music.currentTime = 0;
+
+      // Browser hanya mengizinkan audio play setelah user klik/tap.
+      const playPromise = music.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          musicStarted = false;
+        });
+      }
+    }
+
+    function startExperience(ev) {
+      if (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+      if (started) return;
+      started = true;
+      startTime = performance.now();
+      lastMode = '';
+      lastText = '';
+      scatterTargets('intro');
+      startMusic();
+      const letter = document.getElementById('letterScreen');
+      if (letter) {
+        letter.classList.add('hide');
+        setTimeout(() => letter.remove(), 850);
+      }
+    }
+
     function animate(now) {
       const elapsed = (now - startTime) / 1000;
       const localT = elapsed % LOOP_SECONDS;
@@ -615,10 +902,16 @@
         lastText = '';
       }
 
+      ctx.clearRect(0, 0, W, H);
+      if (!started) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, W, H);
+        requestAnimationFrame(animate);
+        return;
+      }
+
       const mode = applyStage(localT);
       const currentWord = WORDS.find(w => localT >= w.start && localT < w.end);
-
-      ctx.clearRect(0, 0, W, H);
 
       if (localT < INTRO_BLACK_END) {
         ctx.fillStyle = '#000';
@@ -655,8 +948,14 @@
       requestAnimationFrame(animate);
     }
 
+    const letterScreen = document.getElementById('letterScreen');
+    const openLetter = document.getElementById('openLetter');
+    if (letterScreen) letterScreen.addEventListener('pointerdown', startExperience, { passive: false });
+    if (openLetter) openLetter.addEventListener('click', startExperience, { passive: false });
+
     window.addEventListener('resize', resize, { passive: true });
     window.addEventListener('pointerdown', () => {
+      if (!started) return;
       startTime = performance.now();
       lastMode = '';
       lastText = '';
